@@ -41,39 +41,49 @@ cal_data = pd.read_excel(r'vix-funds-models-no-formulas.xls', sheetname = 'cal_v
 #n1. n2 구하기
 # 매달 3번째 수요일에 리셋.--> r=1이면 다음날에 리셋하는 것으로 코딩
 # n2=0으로 시작, n1 값은 랜덤하게. -> 랜덤하게 어떻게 추출? 직전일의 합 = n1도록 코딩
-
-for i in range(len(cal_data)-1):
-    if cal_data.iloc[:,-2][i] ==1:
-        cal_data.iloc[:,3][i+1] =0
-        cal_data.iloc[:,2][i+1] = cal_data.iloc[:,4][i-1]
-        cal_data.iloc[:,4][i] = cal_data.iloc[:,2][i]+cal_data.iloc[:,3][i]
-    if cal_data.iloc[:,-2][i] != 1:
-        cal_data.iloc[:,2][i+1] = cal_data.iloc[:,2][i]-(cal_data.iloc[:,2][i]/cal_data.iloc[:,-2][i]) #n1(t+1)
-        cal_data.iloc[:,3][i+1] = cal_data.iloc[:,3][i]+(cal_data.iloc[:,2][i]/cal_data.iloc[:,-2][i])*(cal_data.iloc[:,0][i]/cal_data.iloc[:,1][i]) #n2(t+1)
-        cal_data.iloc[:,4][i] = cal_data.iloc[:,2][i]+cal_data.iloc[:,3][i]
-        continue
-
+def n_val(cal_data):
+    for i in range(len(cal_data)-1):
+        if cal_data.iloc[:,-2][i] ==1:
+            cal_data.iloc[:,3][i+1] =0
+            cal_data.iloc[:,2][i+1] = cal_data.iloc[:,4][i-1]
+            cal_data.iloc[:,4][i] = cal_data.iloc[:,2][i]+cal_data.iloc[:,3][i]
+        if cal_data.iloc[:,-2][i] != 1:
+            cal_data.iloc[:,2][i+1] = cal_data.iloc[:,2][i]-(cal_data.iloc[:,2][i]/cal_data.iloc[:,-2][i]) #n1(t+1)
+            cal_data.iloc[:,3][i+1] = cal_data.iloc[:,3][i]+(cal_data.iloc[:,2][i]/cal_data.iloc[:,-2][i])*(cal_data.iloc[:,0][i]/cal_data.iloc[:,1][i]) #n2(t+1)
+            cal_data.iloc[:,4][i] = cal_data.iloc[:,2][i]+cal_data.iloc[:,3][i]
+            continue
+    return cal_data
 #c, vxx 값 구하기
-for i in range(len(cal_data)-1):
-    cal_data.iloc[:,6][i] = (cal_data.iloc[:,2][i]*cal_data.iloc[:,0][i]+cal_data.iloc[:,3][i]*cal_data.iloc[:,1][i])/cal_data.iloc[:,-1][i]
-    cal_data.iloc[:,-1][i+1] = (cal_data.iloc[:,2][i]*cal_data.iloc[:,0][i]+cal_data.iloc[:,3][i]*cal_data.iloc[:,1][i])/cal_data.iloc[:,-3][i]
-
-
+def vxx(cal_data):
+    for i in range(len(cal_data)-1):
+        cal_data.iloc[:,6][i] = (cal_data.iloc[:,2][i]*cal_data.iloc[:,0][i]+cal_data.iloc[:,3][i]*cal_data.iloc[:,1][i])/cal_data.iloc[:,-1][i]
+        cal_data.iloc[:,-1][i+1] = (cal_data.iloc[:,2][i]*cal_data.iloc[:,0][i]+cal_data.iloc[:,3][i]*cal_data.iloc[:,1][i])/cal_data.iloc[:,-3][i]
+    return cal_data
+cal_data = n_val(cal_data)
+cal_data = vxx(cal_data)
 #backwardation or contango
-bacwardation = 0
-contango = 0
-for i in range(len(cal_data)-1):
-    if cal_data.iloc[:,0][i]/cal_data.iloc[:,1][i]>1 :
-        bacwardation = bacwardation+1
-    elif cal_data.iloc[:,0][i]/cal_data.iloc[:,1][i]<1:
-        contango = contango +1
+
+def con(cal_data):
+    bacwardation = 0
+    contango = 0
+    for i in range(len(cal_data)-1):
+        if cal_data.iloc[:,0][i]/cal_data.iloc[:,1][i]>1 :
+            bacwardation = bacwardation+1
+        elif cal_data.iloc[:,0][i]/cal_data.iloc[:,1][i]<1:
+            contango = contango +1
+    return contango, bacwardation
+con, back = con(cal_data)
+print('-'*50)
+print('contango is %d , backwardation is %d'%(con,back))
+cal_data['vxx':'VXX market'].dropna()
 
 
 #%%SVXY pricing# n1,n2구하기
 #cal_data_svxy = pd.read_excel(r'vix-funds-models-no-formulas.xls', sheetname = 'cal_svxy', index_col = 0)
 cal_data_svxy = cal_data.copy()
 cal_data_svxy.rename(columns={'vxx':'ret','VXX market':'svxy'}, inplace=True)
-cal_data_svxy.iloc[:,-3][0] = 5.75 #블로그에서 알려준 첫 설정 값
+cal_data_svxy.iloc[:,-3][0] = 5.75 #초기값 설정
+
 #n1,n2 값 구하기(vxx와 반대)
 cal_data_svxy.iloc[:,2] = cal_data_svxy.iloc[:,2] *(-1)
 cal_data_svxy.iloc[:,3] = cal_data_svxy.iloc[:,3]*(-1)
