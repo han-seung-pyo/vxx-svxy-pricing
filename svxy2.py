@@ -75,7 +75,7 @@ def con(cal_data):
 con, back = con(cal_data)
 print('-'*50)
 print('contango is %d , backwardation is %d'%(con,back))
-cal_data['vxx':'VXX market'].dropna()
+diff = cal_data['vxx'].dropna()[1:]- cal_data['VXX market'].dropna()[1:]
 
 
 #%%SVXY pricing# n1,n2구하기
@@ -90,12 +90,21 @@ cal_data_svxy.iloc[:,3] = cal_data_svxy.iloc[:,3]*(-1)
 cal_data_svxy.iloc[:,4] = cal_data_svxy.iloc[:,2]+cal_data_svxy.iloc[:,3]
 
 #선물 holding 하면서 얻는 ret
-for i in range(len(cal_data_svxy)-1):
-    cal_data_svxy.iloc[:,6][i] = (cal_data_svxy.iloc[:,2][i]*cal_data_svxy.iloc[:,0][i]+cal_data_svxy.iloc[:,3][i]*cal_data_svxy.iloc[:,1][i])
- 
-cal_data_svxy['ret'] = -cal_data_svxy['ret'].pct_change()
-
+def ret(cal_data_svxy):
+    for i in range(len(cal_data_svxy)-1):
+        cal_data_svxy.iloc[:,6][i] = (cal_data_svxy.iloc[:,2][i]*cal_data_svxy.iloc[:,0][i]+cal_data_svxy.iloc[:,3][i]*cal_data_svxy.iloc[:,1][i]) 
+    cal_data_svxy['ret'] = -cal_data_svxy['ret'].pct_change()
+    return cal_data_svxy
+cal_data_svxy = ret(cal_data_svxy)
 #svxy(n+1) = svxy(n) + svxy(n)*r(n+1)
-for i in range(len(cal_data_svxy)-1):
-    cal_data_svxy.iloc[:,-3][i+1] = cal_data_svxy.iloc[:,-3][i]*(1+cal_data_svxy.iloc[:,6][i+1])
+def svxy(cal_data_svxy):
+    for i in range(len(cal_data_svxy)-1):
+        cal_data_svxy.iloc[:,-3][i+1] = cal_data_svxy.iloc[:,-3][i]*(1+cal_data_svxy.iloc[:,6][i+1])
+    return cal_data_svxy
+cal_data_svxy = svxy(cal_data_svxy)
+con_svxy, back_svxy = con(cal_data_svxy)
+print('-'*50)
+print('contango is %d , backwardation is %d'%(con_svxy,back_svxy))
+cal_data_svxy['svxy']
+
 #tracking error
